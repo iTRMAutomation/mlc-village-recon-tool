@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { Client } from "@microsoft/microsoft-graph-client";
+import metlifecareLogo from "./assets/metlifecare-logo.svg";
 
 /**
  * Photo Report Uploader – Mobile‑friendly SPA
@@ -298,6 +299,9 @@ function ensureGlobalStyles() {
     .app-shell { min-height: 100vh; padding: clamp(24px, 4vw, 56px) clamp(18px, 5vw, 64px); background: var(--brand-background); }
     .app-layout { width: min(960px, 100%); margin: 0 auto; display: grid; gap: clamp(24px, 3vw, 32px); }
     .app-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 24px; padding: clamp(24px, 4vw, 36px); border-radius: 28px; background: var(--brand-primary); color: var(--brand-on-primary); box-shadow: 0 34px 60px -45px rgba(20, 21, 50, 0.78); }
+    .app-brand { display: flex; align-items: center; gap: clamp(16px, 3vw, 28px); min-width: 0; }
+    .app-heading { display: grid; gap: 6px; min-width: 0; }
+    .app-logo { width: clamp(128px, 18vw, 208px); height: auto; border-radius: 20px; flex-shrink: 0; box-shadow: 0 24px 42px -30px rgba(8, 9, 30, 0.6); background: rgba(255, 255, 255, 0.08); }
     .app-tagline { font-size: 0.75rem; letter-spacing: 0.28em; text-transform: uppercase; opacity: 0.72; margin: 0 0 8px; display: block; }
     .app-title { margin: 0; font-size: clamp(1.8rem, 3.4vw, 2.6rem); font-weight: 600; }
     .app-subtitle { margin: 8px 0 0; max-width: 420px; opacity: 0.78; font-size: 0.95rem; line-height: 1.6; }
@@ -345,6 +349,8 @@ function ensureGlobalStyles() {
     .app-footer { text-align: center; font-size: 0.82rem; color: var(--brand-text-muted); padding-bottom: 12px; }
     @media (max-width: 640px) {
       .app-header { padding: 22px; border-radius: 22px; }
+      .app-brand { flex-direction: column; align-items: flex-start; }
+      .app-logo { width: min(220px, 100%); }
       .panel { padding: 22px; border-radius: 22px; }
       .form-grid { grid-template-columns: 1fr; }
       .panel-header { flex-direction: column; align-items: flex-start; }
@@ -918,10 +924,13 @@ export default function App() {
     <div className="app-shell">
       <div className="app-layout">
         <header className="app-header">
-          <div>
-            <span className="app-tagline">Metlifecare</span>
-            <h1 className="app-title">Village Recon Tool</h1>
-            <p className="app-subtitle">Record key observations in the field and push them to SharePoint in seconds.</p>
+          <div className="app-brand">
+            <img src={metlifecareLogo} alt="Metlifecare logo" className="app-logo" />
+            <div className="app-heading">
+              <span className="app-tagline">Metlifecare</span>
+              <h1 className="app-title">Village Recon Tool</h1>
+              <p className="app-subtitle">Record key observations in the field and push them to SharePoint in seconds.</p>
+            </div>
           </div>
           <div className="auth-block">
             {!msalReady && <span className="auth-status">Initializing authentication…</span>}
@@ -963,8 +972,8 @@ export default function App() {
                   </select>
                 </Field>
               ) : (
-                <Field label="Village" controlId="field-village" hint="We could not read the SharePoint choices, so enter the village manually.">
-                  <input type="text" className="form-control" value={village} onChange={(e) => setVillage(e.target.value)} placeholder="Greenhaven" />
+                <Field label="Village" controlId="field-village" hint="Please sign in first to populate the village list.">
+                  <input type="text" className="form-control" value={village} onChange={(e) => setVillage(e.target.value)} placeholder="Please Authenticate" />
                 </Field>
               )}
 
@@ -1039,5 +1048,4 @@ export default function App() {
     </div>
   );
 }
-
 
