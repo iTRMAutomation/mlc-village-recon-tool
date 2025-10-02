@@ -1,0 +1,26 @@
+{
+  "name": "village-photo-uploader",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "serve -s dist -l 8080"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^3.17.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.73",
+    "@types/react-dom": "^18.2.23",
+    "@vitejs/plugin-react": "^5.0.4",
+    "serve": "^14.2.1",
+    "typescript": "^5.5.4",
+    "vite": "^7.1.7"
+  }
+}
