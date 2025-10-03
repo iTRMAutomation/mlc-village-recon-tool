@@ -311,8 +311,21 @@ function ensureGlobalStyles() {
     .app-main { display: grid; gap: clamp(24px, 3vw, 32px); }
     .panel { background: var(--brand-surface); border-radius: 26px; padding: clamp(24px, 3.5vw, 36px); box-shadow: 0 40px 74px -58px rgba(24, 25, 60, 0.55); display: grid; gap: 24px; border: 1px solid rgba(255, 255, 255, 0.7); }
     .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .panel-title { margin: 0; font-size: clamp(1.2rem, 2.2vw, 1.6rem); font-weight: 600; color: var(--brand-primary); }
-    .panel-subtitle { margin: 6px 0 0; font-size: 0.95rem; color: var(--brand-text-muted); max-width: 460px; }
+    .panel-title { margin: 0; font-size: clamp(1.2rem, 2.2vw, 1.6rem); font-weight: 600; color: var(--brand-primary); display: block; }
+    .panel-subtitle { margin: 6px 0 0; font-size: 0.95rem; color: var(--brand-text-muted); max-width: 460px; display: block; }
+    .diagnostics-panel .panel-header { gap: 18px; }
+    .diagnostics-header { align-items: center; }
+    .diagnostics-header .btn { flex-shrink: 0; }
+    .diagnostics-toggle { display: flex; align-items: flex-start; gap: 16px; border: none; background: none; padding: 0; color: inherit; cursor: pointer; text-align: left; flex: 1; }
+    .diagnostics-toggle:hover { opacity: 0.92; }
+    .diagnostics-toggle:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(90, 95, 244, 0.25); border-radius: 18px; }
+    .diagnostics-toggle-icon { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(38, 39, 70, 0.16); display: grid; place-items: center; background: rgba(38, 39, 70, 0.05); transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease; color: var(--brand-primary); flex-shrink: 0; }
+    .diagnostics-toggle-icon::before { content: ""; border: solid currentColor; border-width: 0 2px 2px 0; display: inline-block; padding: 6px; transform: rotate(45deg); transition: transform 0.2s ease; }
+    .diagnostics-panel--open .diagnostics-toggle-icon { background: rgba(90, 95, 244, 0.12); border-color: rgba(90, 95, 244, 0.3); }
+    .diagnostics-panel--open .diagnostics-toggle-icon::before { transform: rotate(135deg); }
+    .diagnostics-text { display: grid; gap: 6px; align-content: center; }
+    .diagnostics-content { display: grid; gap: 20px; }
+    .diagnostics-content[hidden] { display: none; }
     .panel-badge { align-self: flex-start; padding: 6px 16px; border-radius: 999px; background: var(--brand-accent-soft); color: var(--brand-primary); font-weight: 600; font-size: 0.85rem; }
     .form-grid { display: grid; gap: 18px 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     .form-field { display: grid; gap: 10px; }
@@ -355,6 +368,9 @@ function ensureGlobalStyles() {
       .form-grid { grid-template-columns: 1fr; }
       .panel-header { flex-direction: column; align-items: flex-start; }
       .auth-block { width: 100%; justify-content: space-between; }
+      .diagnostics-header { flex-direction: column; align-items: stretch; }
+      .diagnostics-toggle { width: 100%; }
+      .diagnostics-header .btn { width: 100%; justify-content: center; }
     }
   `;
   document.head.appendChild(style);
@@ -380,6 +396,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Resolved IDs after diagnostics/first run
@@ -440,6 +457,8 @@ export default function App() {
     setVillageChoices(null);
     setVillagePrimed(false);
   };
+
+  const toggleDiagnostics = () => setDiagnosticsOpen((open) => !open);
 
   const signIn = async () => {
     if (!msalReady) {
@@ -838,6 +857,7 @@ export default function App() {
   const [diag, setDiag] = useState<any>({});
 
   const runDiagnostics = async () => {
+    setDiagnosticsOpen(true);
     setDiagBusy(true); setDiag({}); setLog([]);
     try {
       addLog("[Diagnostics] Checking configuration...");
@@ -1012,32 +1032,48 @@ export default function App() {
             <div className="activity-log">{log.length ? log.join("\n") : "No activity yet."}</div>
           </section>
 
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <h3 className="panel-title">Diagnostics</h3>
-                <p className="panel-subtitle">Run this checklist if something looks off before escalating.</p>
-              </div>
+          <section className={`panel diagnostics-panel${diagnosticsOpen ? " diagnostics-panel--open" : ""}`}>
+            <div className="panel-header diagnostics-header">
+              <button
+                type="button"
+                className="diagnostics-toggle"
+                onClick={toggleDiagnostics}
+                aria-expanded={diagnosticsOpen}
+                aria-controls="diagnostics-content"
+              >
+                <span className="diagnostics-toggle-icon" aria-hidden="true" />
+                <span className="diagnostics-text">
+                  <span className="panel-title">Diagnostics</span>
+                  <span className="panel-subtitle">Run this checklist if something looks off before escalating.</span>
+                </span>
+              </button>
               <Button variant="secondary" onClick={runDiagnostics} disabled={!account || diagBusy || !msalReady || !sgraph}>
                 {diagBusy ? "Running…" : "Run diagnostics"}
               </Button>
             </div>
-            <ul className="diagnostics-list">
-              <li>Config present for tenant/site/list/library (with host/path warnings)</li>
-              <li>MSAL initialises and enforces popup-only flows</li>
-              <li>Redirect URI matches the current origin</li>
-              <li>Network probes confirm Graph and SharePoint host reachability</li>
-              <li>Token acquisition via MSAL (silent ⇢ popup fallback)</li>
-              <li>Resolve site, list, and library drive identifiers</li>
-              <li>Resolve internal field names (Title, Village, Notes, CapturedOn, PhotoUrl)</li>
-              <li>Detect photo column type and format payload accordingly</li>
-              <li>Append additional photo URLs into Notes for readability</li>
-              <li>Create/validate library folder path <code>{toStr(CONFIG.libraryFolderPath) || "<library root>"}/YYYY/MM</code></li>
-              <li>Graph base/version compose correctly and `$metadata` endpoint responds</li>
-              <li>Graph client smoke test: `/me?$select=id,displayName` returns user identity</li>
-              <li>Path builder tests ensure no `root::/children` usage</li>
-            </ul>
-            <div className="diagnostics-json">{Object.keys(diag).length === 0 ? "No diagnostics have been run yet." : JSON.stringify(diag, null, 2)}</div>
+            <div
+              id="diagnostics-content"
+              className="diagnostics-content"
+              hidden={!diagnosticsOpen}
+              aria-hidden={!diagnosticsOpen}
+            >
+              <ul className="diagnostics-list">
+                <li>Config present for tenant/site/list/library (with host/path warnings)</li>
+                <li>MSAL initialises and enforces popup-only flows</li>
+                <li>Redirect URI matches the current origin</li>
+                <li>Network probes confirm Graph and SharePoint host reachability</li>
+                <li>Token acquisition via MSAL (silent ⇢ popup fallback)</li>
+                <li>Resolve site, list, and library drive identifiers</li>
+                <li>Resolve internal field names (Title, Village, Notes, CapturedOn, PhotoUrl)</li>
+                <li>Detect photo column type and format payload accordingly</li>
+                <li>Append additional photo URLs into Notes for readability</li>
+                <li>Create/validate library folder path <code>{toStr(CONFIG.libraryFolderPath) || "<library root>"}/YYYY/MM</code></li>
+                <li>Graph base/version compose correctly and `$metadata` endpoint responds</li>
+                <li>Graph client smoke test: `/me?$select=id,displayName` returns user identity</li>
+                <li>Path builder tests ensure no `root::/children` usage</li>
+              </ul>
+              <div className="diagnostics-json">{Object.keys(diag).length === 0 ? "No diagnostics have been run yet." : JSON.stringify(diag, null, 2)}</div>
+            </div>
           </section>
 
           <footer className="app-footer">
