@@ -396,6 +396,11 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const isMobileBrowser = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  }, []);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -459,6 +464,17 @@ export default function App() {
   };
 
   const toggleDiagnostics = () => setDiagnosticsOpen((open) => !open);
+  const scheduleMobileRefresh = () => {
+    if (!isMobileBrowser || typeof window === "undefined") return;
+    const reload = () => {
+      try { window.location.reload(); } catch { /* noop */ }
+    };
+    if ("requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(reload, { timeout: 750 });
+    } else {
+      window.setTimeout(reload, 350);
+    }
+  };
 
   const signIn = async () => {
     if (!msalReady) {
@@ -844,7 +860,10 @@ export default function App() {
       addLog("All done. ✨");
       alert("Submitted successfully.");
       setTitle(""); setVillage(""); setNotes(""); setFiles([]); setPreviewUrls([]);
+      setCapturedOn(() => formatDateTimeLocal(new Date(), NZ_TIME_ZONE));
+      setDiagnosticsOpen(false);
       if (inputRef.current) inputRef.current.value = "";
+      scheduleMobileRefresh();
     } catch (e: any) {
       console.error(e);
       addLog(`Error: ${e.message}`);
