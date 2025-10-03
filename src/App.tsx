@@ -341,8 +341,8 @@ function ensureGlobalStyles() {
     .file-input:hover { border-color: rgba(38, 39, 70, 0.38); background: rgba(38, 39, 70, 0.06); }
     .file-input::file-selector-button { margin-right: 16px; border: none; border-radius: 14px; padding: 10px 16px; font-weight: 600; background: linear-gradient(135deg, var(--brand-accent), var(--brand-primary)); color: var(--brand-on-primary); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.2s ease; }
     .file-input::file-selector-button:hover { transform: translateY(-1px); box-shadow: 0 16px 28px -18px rgba(38, 39, 70, 0.45); }
-    .photo-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
-    .photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 18px; box-shadow: 0 28px 44px -32px rgba(38, 39, 70, 0.52); }
+    .photo-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(96px, 128px)); justify-content: flex-start; }
+    .photo-thumb { width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; box-shadow: 0 24px 40px -32px rgba(38, 39, 70, 0.5); }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: none; border-radius: 999px; padding: 0.75rem 1.6rem; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background 0.2s ease, color 0.2s ease; text-decoration: none; }
     .btn:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(90, 95, 244, 0.25); }
     .btn-primary { background: linear-gradient(135deg, var(--brand-accent), var(--brand-primary)); color: var(--brand-on-primary); box-shadow: 0 22px 38px -24px rgba(38, 39, 70, 0.78); }
@@ -395,7 +395,7 @@ export default function App() {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<{ key: string; url: string }[]>([]);
   const isMobileBrowser = useMemo(() => {
     if (typeof navigator === "undefined") return false;
     const ua = navigator.userAgent || "";
@@ -403,6 +403,11 @@ export default function App() {
   }, []);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [previews]);
 
   // Resolved IDs after diagnostics/first run
   const [resolved, setResolved] = useState<{ siteId: string | null; listId: string | null; driveId: string | null }>({ siteId: null, listId: null, driveId: null });
@@ -746,11 +751,35 @@ export default function App() {
     return await sgraph!.post(`/sites/${siteId}/lists/${listId}/items`, { fields });
   };
 
+  const fileKey = (file: File) => `${file.name}::${file.size}::${file.lastModified}`;
+
   const onFilesChanged = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = Array.from(e.target.files || []);
-    setFiles(f as File[]);
-    const urls = f.map((file) => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+    const picked = Array.from(e.target.files || []);
+    if (picked.length === 0) return;
+    setFiles((prev) => {
+      const existingKeys = new Set(prev.map((file) => fileKey(file)));
+      const next = [...prev];
+      for (const file of picked) {
+        const key = fileKey(file);
+        if (existingKeys.has(key)) continue;
+        existingKeys.add(key);
+        next.push(file);
+      }
+      return next;
+    });
+    setPreviews((prev) => {
+      const next = [...prev];
+      const existingKeys = new Set(prev.map((item) => item.key));
+      for (const file of picked) {
+        const key = fileKey(file);
+        if (existingKeys.has(key)) continue;
+        const url = URL.createObjectURL(file);
+        next.push({ key, url });
+        existingKeys.add(key);
+      }
+      return next;
+    });
+    e.target.value = "";
   };
 
   const validateConfig = () => {
@@ -859,7 +888,11 @@ export default function App() {
 
       addLog("All done. ✨");
       alert("Submitted successfully.");
-      setTitle(""); setVillage(""); setNotes(""); setFiles([]); setPreviewUrls([]);
+      setTitle(""); setVillage(""); setNotes(""); setFiles([]);
+      setPreviews((prev) => {
+        prev.forEach((item) => URL.revokeObjectURL(item.url));
+        return [];
+      });
       setCapturedOn(() => formatDateTimeLocal(new Date(), NZ_TIME_ZONE));
       setDiagnosticsOpen(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -1026,10 +1059,10 @@ export default function App() {
 
               <Field label="Photos" controlId="field-photos" hint="Upload one or more images or choose from your library — we will create the SharePoint folder for you." full>
                 <input ref={inputRef} type="file" multiple accept="image/*" onChange={onFilesChanged} className="form-control file-input" />
-                {previewUrls.length > 0 && (
+                {previews.length > 0 && (
                   <div className="photo-grid">
-                    {previewUrls.map((u, i) => (
-                      <img key={i} src={u} alt={`preview-${i}`} />
+                    {previews.map((preview, index) => (
+                      <img key={preview.key} src={preview.url} alt={`preview-${index + 1}`} className="photo-thumb" />
                     ))}
                   </div>
                 )}
