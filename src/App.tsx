@@ -474,8 +474,9 @@ export default function App() {
     const reload = () => {
       try { window.location.reload(); } catch { /* noop */ }
     };
-    if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(reload, { timeout: 750 });
+    const requestIdle = (window as any).requestIdleCallback;
+    if (typeof requestIdle === "function") {
+      requestIdle.call(window, reload, { timeout: 750 });
     } else {
       window.setTimeout(reload, 350);
     }
@@ -1136,4 +1137,5 @@ export default function App() {
     </div>
   );
 }
+
 
