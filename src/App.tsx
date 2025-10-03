@@ -1005,8 +1005,8 @@ export default function App() {
                 <textarea className="form-control" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add context for the photos." />
               </Field>
 
-              <Field label="Photos" controlId="field-photos" hint="Upload one or more images — we will create the SharePoint folder for you." full>
-                <input ref={inputRef} type="file" multiple accept="image/*" capture="environment" onChange={onFilesChanged} className="form-control file-input" />
+              <Field label="Photos" controlId="field-photos" hint="Upload one or more images or choose from your library — we will create the SharePoint folder for you." full>
+                <input ref={inputRef} type="file" multiple accept="image/*" onChange={onFilesChanged} className="form-control file-input" />
                 {previewUrls.length > 0 && (
                   <div className="photo-grid">
                     {previewUrls.map((u, i) => (
