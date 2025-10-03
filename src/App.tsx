@@ -947,7 +947,7 @@ export default function App() {
           <div className="app-brand">
             <img src={metlifecareLogo} alt="Metlifecare logo" className="app-logo" />
             <div className="app-heading">
-              <span className="app-tagline">Metlifecare</span>
+              <span className="app-tagline"></span>
               <h1 className="app-title">Village Recon Tool</h1>
               <p className="app-subtitle">Record key observations in the field and push them to SharePoint in seconds.</p>
             </div>
