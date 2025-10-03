@@ -263,7 +263,7 @@ const Button: React.FC<ButtonProps> = ({ variant = "primary", className = "", ch
 const palette = {
   background: "#F6F1EA",
   surface: "#FFFFFF",
-  primary: "#262746",
+  primary: "#1F214B",
   accent: "#5A5FF4",
   accentSoft: "#E9E8FF",
   text: "#202134",
@@ -940,7 +940,7 @@ export default function App() {
                 <Button variant="ghost" onClick={signOut} disabled={!msalReady}>Sign out</Button>
               </>
             ) : (
-              <Button variant="primary" onClick={signIn} disabled={!msalReady}>Sign in with Microsoft</Button>
+              <Button variant="primary" onClick={signIn} disabled={!msalReady}>Sign in with Entra</Button>
             )}
           </div>
         </header>
