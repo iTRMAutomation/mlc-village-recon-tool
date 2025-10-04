@@ -108,6 +108,35 @@ const zonedDateTimeStringToUtc = (value: string, timeZone: string) => {
   const offset = getTimeZoneOffset(naiveUtc, timeZone);
   return new Date(naiveUtc.getTime() - offset);
 };
+const formatDateTimeForSharePoint = (value: string, timeZone: string) => {
+  const date = zonedDateTimeStringToUtc(value, timeZone);
+  const parts = new Intl.DateTimeFormat("en-NZ", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date).reduce((acc, part) => {
+    if (part.type !== "literal") acc[part.type] = part.value;
+    return acc;
+  }, {} as Record<string, string>);
+  const offsetMinutesTotal = Math.round(getTimeZoneOffset(date, timeZone) / 60000);
+  const sign = offsetMinutesTotal >= 0 ? "+" : "-";
+  const absMinutes = Math.abs(offsetMinutesTotal);
+  const offsetHours = Math.floor(absMinutes / 60);
+  const offsetMinutes = absMinutes % 60;
+  const offset = `${sign}${String(offsetHours).padStart(2, "0")}:${String(offsetMinutes).padStart(2, "0")}`;
+  const year = parts.year ?? "0000";
+  const month = parts.month ?? "01";
+  const day = parts.day ?? "01";
+  const hour = parts.hour ?? "00";
+  const minute = parts.minute ?? "00";
+  const second = parts.second ?? "00";
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}${offset}`;
+};
 // ── ⬇️ REQUIRED CONFIG – EDIT THESE VALUES ⬇️ ────────────────────────────────
 const CONFIG = {
   // NOTE: Browser apps cannot use certificate credential flow. Delegated MSAL is used here.
@@ -867,8 +896,7 @@ export default function App() {
       // Notes stay as-entered; photo URLs tracked solely in the photo column
       const augmentedNotes = notes || "";
 
-      const dt = zonedDateTimeStringToUtc(capturedOn, NZ_TIME_ZONE);
-      const isoDate = dt.toISOString();
+      const isoDate = formatDateTimeForSharePoint(capturedOn, NZ_TIME_ZONE);
 
       const fields: any = {};
       fields[titleName] = title || (files[0]?.name || "Photo Report");
@@ -976,7 +1004,7 @@ export default function App() {
       const sampleUrls = ["https://contoso/img-a.jpg","https://contoso/img-b.jpg","https://contoso/img-c.jpg"];
       const sampleNotes = "Example note";
       const photoValuePreview = photoFieldName ? formatPhotoValue(typeByName, photoFieldName, sampleUrls) : undefined;
-      setDiag((d: any) => ({ ...d, sampleFields: { [titleName]: "TEST – Sample Multi Photo", ...(villageName ? { [villageName]: "SampleVillage" } : {}), ...(notesName ? { [notesName]: sampleNotes } : {}), ...(capturedOnName ? { [capturedOnName]: new Date().toISOString() } : {}), ...(photoFieldName ? { [photoFieldName]: photoValuePreview } : {}) } }));
+      setDiag((d: any) => ({ ...d, sampleFields: { [titleName]: "TEST – Sample Multi Photo", ...(villageName ? { [villageName]: "SampleVillage" } : {}), ...(notesName ? { [notesName]: sampleNotes } : {}), ...(capturedOnName ? { [capturedOnName]: formatDateTimeForSharePoint(formatDateTimeLocal(new Date(), NZ_TIME_ZONE), NZ_TIME_ZONE) } : {}), ...(photoFieldName ? { [photoFieldName]: photoValuePreview } : {}) } }));
 
       addLog("[Diagnostics] Completed successfully ✅");
     } catch (e: any) {
