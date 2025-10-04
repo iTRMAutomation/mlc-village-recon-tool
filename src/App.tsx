@@ -864,13 +864,8 @@ export default function App() {
       const primaryUrl = photoUrls[0] || "";
       const extraUrls = photoUrls.slice(1);
 
-      // Build notes with additional URLs appended as requested
-      let augmentedNotes = notes || "";
-      if (extraUrls.length) {
-        const extraBlock = `\\n\\nAdditional photos:\\n${extraUrls.join("\\n")}`;
-        augmentedNotes += extraBlock;
-        addLog(`Appended ${extraUrls.length} additional photo URL(s) to Notes.`);
-      }
+      // Notes stay as-entered; photo URLs tracked solely in the photo column
+      const augmentedNotes = notes || "";
 
       const dt = zonedDateTimeStringToUtc(capturedOn, NZ_TIME_ZONE);
       const isoDate = dt.toISOString();
@@ -977,10 +972,9 @@ export default function App() {
       const nestedChildrenPath = childrenEndpoint(driveId, "a/b");
       setDiag((d: any) => ({ ...d, pathTests: { rootChildrenPath, nestedChildrenPath } }));
 
-      // Sample payload preview and Note augmentation test
+      // Sample payload preview for diagnostics
       const sampleUrls = ["https://contoso/img-a.jpg","https://contoso/img-b.jpg","https://contoso/img-c.jpg"];
-      const sampleExtras = sampleUrls.slice(1);
-      const sampleNotes = "Example note" + (sampleExtras.length ? `\\n\\nAdditional photos:\\n${sampleExtras.join("\\n")}` : "");
+      const sampleNotes = "Example note";
       const photoValuePreview = photoFieldName ? formatPhotoValue(typeByName, photoFieldName, sampleUrls) : undefined;
       setDiag((d: any) => ({ ...d, sampleFields: { [titleName]: "TEST – Sample Multi Photo", ...(villageName ? { [villageName]: "SampleVillage" } : {}), ...(notesName ? { [notesName]: sampleNotes } : {}), ...(capturedOnName ? { [capturedOnName]: new Date().toISOString() } : {}), ...(photoFieldName ? { [photoFieldName]: photoValuePreview } : {}) } }));
 
