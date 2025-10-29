@@ -441,9 +441,15 @@ export default function App() {
   // Resolved IDs after diagnostics/first run
   const [resolved, setResolved] = useState<{ siteId: string | null; listId: string | null; driveId: string | null }>({ siteId: null, listId: null, driveId: null });
 
-  // NEW: Village choices (if column is Choice)
+  // NEW: Column choice caches (Village + CategoryOptions)
+  const [titleChoices, setTitleChoices] = useState<string[] | null>(null);
   const [villageChoices, setVillageChoices] = useState<string[] | null>(null);
-  const [villagePrimed, setVillagePrimed] = useState(false);
+  const [choicesPrimed, setChoicesPrimed] = useState(false);
+
+  useEffect(() => {
+    if (!Array.isArray(titleChoices) || titleChoices.length === 0) return;
+    setTitle((prev) => (titleChoices.includes(prev) ? prev : ""));
+  }, [titleChoices]);
 
   useEffect(() => { ensureGlobalStyles(); }, []);
 
@@ -465,36 +471,42 @@ export default function App() {
   const graph = useGraphClient(account);
   const sgraph = graph ? useSafeGraph(graph) : null;
   useEffect(() => {
-    if (!account || !msalReady || !sgraph || villagePrimed) return;
+    if (!account || !msalReady || !sgraph || choicesPrimed) return;
     let cancelled = false;
-    const preloadVillages = async () => {
+    const preloadChoices = async () => {
       try {
         const currentSiteId = resolved.siteId || (await getSiteId());
         const currentListId = resolved.listId || (await resolveListId(currentSiteId, CONFIG.spListIdOrName));
         const currentDriveId = resolved.driveId || (await resolveDriveId(currentSiteId, CONFIG.spLibraryDriveIdOrName));
         const { byLower, choicesByName, metaByName } = await getColumns(currentSiteId, currentListId);
         const villageName = chooseField(byLower, metaByName, ["Village"], { requireWritable: true });
+        const categoryOptionsName = chooseField(byLower, metaByName, ["CategoryOptions", "Category Options", "Category"]);
         const availableVillageChoices = villageName ? (choicesByName[villageName] ?? []) : [];
+        const availableTitleChoices = categoryOptionsName ? (choicesByName[categoryOptionsName] ?? []) : [];
         if (cancelled) return;
         setResolved({ siteId: currentSiteId, listId: currentListId, driveId: currentDriveId });
         setVillageChoices(availableVillageChoices.length ? availableVillageChoices : null);
-        setVillagePrimed(true);
+        setTitleChoices(availableTitleChoices.length ? availableTitleChoices : null);
+        setChoicesPrimed(true);
       } catch (e: any) {
         if (cancelled) return;
-        setVillagePrimed(true);
-        setLog((l) => [...l, `${new Date().toLocaleTimeString()}: Village preload failed → ${e.message}`]);
+        setChoicesPrimed(true);
+        setTitleChoices(null);
+        setVillageChoices(null);
+        setLog((l) => [...l, `${new Date().toLocaleTimeString()}: Choice preload failed - ${e.message}`]);
       }
     };
-    preloadVillages();
+    preloadChoices();
     return () => { cancelled = true; };
-  }, [account, msalReady, sgraph, villagePrimed, resolved.siteId, resolved.listId, resolved.driveId]);
+  }, [account, msalReady, sgraph, choicesPrimed, resolved.siteId, resolved.listId, resolved.driveId]);
 
   const addLog = (msg: string) => setLog((l) => [...l, `${new Date().toLocaleTimeString()}: ${msg}`]);
 
   const resetSharePointState = () => {
     setResolved({ siteId: null, listId: null, driveId: null });
+    setTitleChoices(null);
     setVillageChoices(null);
-    setVillagePrimed(false);
+    setChoicesPrimed(false);
   };
 
   const toggleDiagnostics = () => setDiagnosticsOpen((open) => !open);
@@ -865,6 +877,7 @@ export default function App() {
       const notesName = chooseField(byLower, metaByName, ["Notes","Note","Description"], { requireWritable: true }) || null;
       const capturedOnName = chooseField(byLower, metaByName, ["CapturedOn","Captured On","Captured_On"], { requireWritable: true }) || null;
       const photoFieldName = chooseField(byLower, metaByName, ["PhotoUrl","PhotoUrL","Photo URL","Photo_Url"], { requireWritable: true }) || null;
+      const categoryOptionsName = chooseField(byLower, metaByName, ["CategoryOptions","Category Options","Category"]) || null;
       setResolved({ siteId, listId, driveId });
 
       // Capture Village choices for the dropdown UI when available
@@ -873,6 +886,12 @@ export default function App() {
         setVillageChoices(availableVillageChoices);
       } else {
         setVillageChoices(null);
+      }
+      const availableTitleChoices = categoryOptionsName ? (choicesByName[categoryOptionsName] ?? []) : [];
+      if (availableTitleChoices.length) {
+        setTitleChoices(availableTitleChoices);
+      } else {
+        setTitleChoices(null);
       }
 
       if (!photoFieldName) throw new Error("Could not find a 'PhotoUrl'/'PhotoUrL' column on the list. Check the internal name in List Settings → Columns.");
@@ -987,9 +1006,28 @@ export default function App() {
       const notesName = chooseField(byLower, metaByName, ["Notes","Note","Description"], { requireWritable: true }) || null;
       const capturedOnName = chooseField(byLower, metaByName, ["CapturedOn","Captured On","Captured_On"], { requireWritable: true }) || null;
       const photoFieldName = chooseField(byLower, metaByName, ["PhotoUrl","PhotoUrL","Photo URL","Photo_Url"], { requireWritable: true }) || null;
+      const categoryOptionsName = chooseField(byLower, metaByName, ["CategoryOptions","Category Options","Category"]) || null;
       const diagVillageChoices = villageName ? (choicesByName[villageName] ?? []) : [];
+      const diagTitleChoices = categoryOptionsName ? (choicesByName[categoryOptionsName] ?? []) : [];
       setVillageChoices(diagVillageChoices.length ? diagVillageChoices : null);
-      setDiag((d: any) => ({ ...d, siteId, listId, driveId, resolvedFields: { titleName, villageName, notesName, capturedOnName, photoFieldName, photoType: photoFieldName ? typeByName[photoFieldName] : "<missing>", villageChoices: diagVillageChoices } }));
+      setTitleChoices(diagTitleChoices.length ? diagTitleChoices : null);
+      setDiag((d: any) => ({
+        ...d,
+        siteId,
+        listId,
+        driveId,
+        resolvedFields: {
+          titleName,
+          villageName,
+          notesName,
+          capturedOnName,
+          photoFieldName,
+          photoType: photoFieldName ? typeByName[photoFieldName] : "<missing>",
+          categoryOptionsName,
+          titleChoices: diagTitleChoices,
+          villageChoices: diagVillageChoices,
+        },
+      }));
 
       addLog("[Diagnostics] Graph client smoke test: /me?$select=id,displayName ...");
       const me = await sgraph!.get(`/me?$select=id,displayName`);
@@ -1054,7 +1092,16 @@ export default function App() {
 
             <div className="form-grid">
               <Field label="Title" controlId="field-title" hint="Give the upload a clear, searchable name.">
-                <input type="text" className="form-control" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Unknown hardware" />
+                {Array.isArray(titleChoices) && titleChoices.length > 0 ? (
+                  <select className="form-control" value={title} onChange={(e) => setTitle(e.target.value)}>
+                    <option value="">Select a category.</option>
+                    {titleChoices.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input type="text" className="form-control" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Unknown hardware" />
+                )}
               </Field>
 
               {Array.isArray(villageChoices) && villageChoices.length > 0 ? (
