@@ -430,6 +430,10 @@ export default function App() {
     const ua = navigator.userAgent || "";
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   }, []);
+  const isAndroid = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    return /android/i.test(navigator.userAgent || "");
+  }, []);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
@@ -1128,7 +1132,15 @@ export default function App() {
               </Field>
 
               <Field label="Photos" controlId="field-photos" hint="Upload one or more images or choose from your library — we will create the SharePoint folder for you." full>
-                <input ref={inputRef} type="file" multiple accept="image/*" onChange={onFilesChanged} className="form-control file-input" />
+                <input
+                  ref={inputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={onFilesChanged}
+                  className="form-control file-input"
+                  {...(isAndroid ? { capture: "environment" as const } : {})}
+                />
                 {previews.length > 0 && (
                   <div className="photo-grid">
                     {previews.map((preview, index) => (
