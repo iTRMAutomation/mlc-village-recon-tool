@@ -430,10 +430,6 @@ export default function App() {
     const ua = navigator.userAgent || "";
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   }, []);
-  const isAndroid = useMemo(() => {
-    if (typeof navigator === "undefined") return false;
-    return /android/i.test(navigator.userAgent || "");
-  }, []);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
@@ -1139,7 +1135,6 @@ export default function App() {
                   accept="image/*"
                   onChange={onFilesChanged}
                   className="form-control file-input"
-                  {...(isAndroid ? { capture: "environment" as const } : {})}
                 />
                 {previews.length > 0 && (
                   <div className="photo-grid">
