@@ -370,6 +370,8 @@ function ensureGlobalStyles() {
     .file-input:hover { border-color: rgba(38, 39, 70, 0.38); background: rgba(38, 39, 70, 0.06); }
     .file-input::file-selector-button { margin-right: 16px; border: none; border-radius: 14px; padding: 10px 16px; font-weight: 600; background: linear-gradient(135deg, var(--brand-accent), var(--brand-primary)); color: var(--brand-on-primary); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.2s ease; }
     .file-input::file-selector-button:hover { transform: translateY(-1px); box-shadow: 0 16px 28px -18px rgba(38, 39, 70, 0.45); }
+    .android-photo-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: -4px; }
+    .android-photo-note { font-size: 0.8rem; color: var(--brand-text-muted); margin: 0; line-height: 1.4; }
     .photo-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(96px, 128px)); justify-content: flex-start; }
     .photo-thumb { width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; box-shadow: 0 24px 40px -32px rgba(38, 39, 70, 0.5); }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: none; border-radius: 999px; padding: 0.75rem 1.6rem; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease, background 0.2s ease, color 0.2s ease; text-decoration: none; }
@@ -430,8 +432,13 @@ export default function App() {
     const ua = navigator.userAgent || "";
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   }, []);
+  const isAndroid = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    return /android/i.test(navigator.userAgent || "");
+  }, []);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
     return () => {
       previews.forEach((preview) => URL.revokeObjectURL(preview.url));
@@ -939,6 +946,7 @@ export default function App() {
       setCapturedOn(() => formatDateTimeLocal(new Date(), NZ_TIME_ZONE));
       setDiagnosticsOpen(false);
       if (inputRef.current) inputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
       scheduleMobileRefresh();
     } catch (e: any) {
       console.error(e);
@@ -1127,7 +1135,16 @@ export default function App() {
                 <textarea className="form-control" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add context for the photos." />
               </Field>
 
-              <Field label="Photos" controlId="field-photos" hint="Upload one or more images or choose from your library — we will create the SharePoint folder for you." full>
+              <Field
+                label="Photos"
+                controlId="field-photos"
+                hint={
+                  isAndroid
+                    ? "Choose from your gallery above or tap 'Use camera' to capture a new photo."
+                    : "Upload one or more images or choose from your library — we will create the SharePoint folder for you."
+                }
+                full
+              >
                 <input
                   ref={inputRef}
                   type="file"
@@ -1136,6 +1153,24 @@ export default function App() {
                   onChange={onFilesChanged}
                   className="form-control file-input"
                 />
+                {isAndroid && (
+                  <>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={onFilesChanged}
+                      style={{ display: "none" }}
+                    />
+                    <div className="android-photo-actions">
+                      <Button type="button" variant="secondary" onClick={() => cameraInputRef.current?.click()}>
+                        Use camera
+                      </Button>
+                      <p className="android-photo-note">Android defaults to the gallery for multi-select. Use the camera button to snap photos without leaving the form.</p>
+                    </div>
+                  </>
+                )}
                 {previews.length > 0 && (
                   <div className="photo-grid">
                     {previews.map((preview, index) => (
